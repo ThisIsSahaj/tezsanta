@@ -80,6 +80,8 @@ button:focus-visible {
 .header{
   width: 1000px;
   margin-top: -300px;
+  border: 2px solid red;
+  /* height: 30px; */
 }
 .header img{
   width: 400px;

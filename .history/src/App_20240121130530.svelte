@@ -122,9 +122,7 @@
 </script>
 
 <main>
-   <div class="header">
-    <img src="logo.png" alt="" />
-   </div>
+  
   <h1>Tez Santa dApp</h1>
   
   <div class="card">

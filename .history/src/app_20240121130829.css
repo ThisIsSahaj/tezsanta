@@ -77,10 +77,11 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
-.header{
-  width: 1000px;
-  margin-top: -300px;
-}
+/* .header{
+  width: 100%;
+  border: 2px solid red;
+  height: 30px;
+} */
 .header img{
   width: 400px;
   height: 400px;
