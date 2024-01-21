@@ -1,0 +1,149 @@
+<script lang="ts">
+ import { BeaconWallet } from "@taquito/beacon-wallet";
+ import { NetworkType } from "@airgap/beacon-types";
+ import { TezosToolkit, MichelsonMap} from "@taquito/taquito";
+
+  const rpcUrl = "https://ghostnet.ecadinfra.com";
+  const Tezos = new TezosToolkit(rpcUrl);
+  
+  let wallet;
+let address;
+let balance;
+let statusMessage = "Mint an NFT";
+let buttonActive = false;
+
+const connectWallet = async () => {
+  try {
+    const newWallet = new BeaconWallet({
+      name: "Tez Santa",
+      network: {
+       type: NetworkType.GHOSTNET,
+     },
+    });
+    await newWallet.requestPermissions();
+    address = await newWallet.getPKH();
+    const balanceMutez = await Tezos.tz.getBalance(address);
+    balance = balanceMutez.div(1000000).toFormat(2);
+    buttonActive = true;
+    wallet = newWallet;
+  } catch (error) {
+    console.error("Error connecting wallet:", error);
+  }
+  depositButtonActive = true;
+  await getBankBalance(address);
+};
+
+const disconnectWallet = () => {
+  wallet.client.clearActiveAccount();
+  wallet = undefined;
+  buttonActive = false;
+};
+
+
+// const contractAddress = "KT1W8FrDRM28BGy1VVKXfN9L61jW1dgAjHQi"
+const contractAddress = "KT1R4i4qEaxF7v3zg1M8nTeyrqk8JFmdGLuu";
+let depositAmount = 1;
+let depositButtonActive = false;
+let depositButtonLabel = "Deposit";
+
+const deposit = async () => {
+  depositButtonActive = false;
+  depositButtonLabel = "Depositing...";
+
+  Tezos.setWalletProvider(wallet);
+  const contract = await Tezos.wallet.at(contractAddress);
+
+  const transactionParams = await contract.methods
+    .deposit()
+    .toTransferParams({
+      amount: depositAmount,
+    });
+  const estimate = await Tezos.estimate.transfer(transactionParams);
+
+  const operation = await Tezos.wallet
+    .transfer({
+      ...transactionParams,
+      ...estimate,
+    })
+    .send();
+
+  console.log(`Waiting for ${operation.opHash} to be confirmed...`);
+
+  await operation.confirmation(2);
+
+  console.log(
+    `Operation injected: https://ghost.tzstats.com/${operation.opHash}`
+  );
+
+  // await getWalletBalance(address);
+  depositButtonActive = true;
+  depositButtonLabel = "Deposit";
+  await getBankBalance(address);
+};
+
+// const requestNFT = async () => {
+//   if (!buttonActive) {
+//    return;
+//  }
+//  buttonActive = false;
+//  statusMessage = "Minting NFT..."; 
+// }
+
+//  const metadata = "7b226172746966616374557269223a22697066733a2f2f516d57476342434c516132387955505634355172444e47545a6e6a56784b6434416546565a4233666166486f5950222c2261747472696275746573223a5b5d2c2263726561746f7273223a5b22747a3157584b32795776416861466458456a73587548656e6667664472396d7157694277225d2c2264617465223a22323032332d30342d31335431373a32343a35312e3035353930335a222c22646563696d616c73223a302c226465736372697074696f6e223a22547a6f7563616e206973206120736d616c6c20636f6c6c656374696f6e206f662066756e6e7920746f7563616e73206f6e207468652054657a6f7320426c6f636b636861696e2e222c22646973706c6179557269223a22697066733a2f2f516d634d484a514c475444646a363873554d4b42687a3669464538326f36504144386e61755a6b4b4b43426d7173222c22666f726d617473223a5b7b2264696d656e73696f6e73223a7b22756e6974223a227078222c2276616c7565223a2235313278363430227d2c2266696c654e616d65223a2261727469666163742e706e67222c2266696c6553697a65223a3232383532332c226d696d6554797065223a22696d6167652f706e67222c22757269223a22697066733a2f2f516d57476342434c516132387955505634355172444e47545a6e6a56784b6434416546565a4233666166486f5950227d2c7b2264696d656e73696f6e73223a7b22756e6974223a227078222c2276616c7565223a2235313278363430227d2c2266696c654e616d65223a22646973706c61792e706e67222c2266696c6553697a65223a3232373534322c226d696d6554797065223a22696d6167652f706e67222c22757269223a22697066733a2f2f516d634d484a514c475444646a363873554d4b42687a3669464538326f36504144386e61755a6b4b4b43426d7173227d2c7b2264696d656e73696f6e73223a7b22756e6974223a227078222c2276616c7565223a2233323078343030227d2c2266696c654e616d65223a227468756d626e61696c2e706e67222c2266696c6553697a65223a3131323837382c226d696d6554797065223a22696d6167652f706e67222c22757269223a22697066733a2f2f516d593334616a6872757a66784a3979387358704b4365625a4a524638435a69443270487931534254375a4b5475227d5d2c22696d616765223a22697066733a2f2f516d634d484a514c475444646a363873554d4b42687a3669464538326f36504144386e61755a6b4b4b43426d7173222c226d696e746572223a224b543141713477576d56616e70516871345454666a5a584235416a467078313569514d4d222c226d696e74696e67546f6f6c223a2268747470733a2f2f6f626a6b742e636f6d2f6d696e745632222c226e616d65223a22547a6f7563616e20233438222c22726967687473223a224e6f204c6963656e7365202f20416c6c20526967687473205265736572766564222c22726f79616c74696573223a7b22646563696d616c73223a342c22736861726573223a7b22747a3157584b32795776416861466458456a73587548656e6667664472396d7157694277223a3530307d7d2c2273796d626f6c223a224f424a4b54434f4d222c2274616773223a5b22746f7563616e222c2262697264222c226d6f6465726e222c22617274225d2c227468756d626e61696c557269223a22697066733a2f2f516d593334616a6872757a66784a3979387358704b4365625a4a524638435a69443270487931534254375a4b5475227d"
+
+//  const metadatamap = new MichelsonMap()
+//  metadatamap.set('',metadata)
+
+
+// try {
+//   console.log("setting the wallet");
+//   Tezos.setWalletProvider(wallet);
+
+//   console.log("getting contract");
+//   const contract = await Tezos.wallet.at(contractAddress);
+//   console.log("minting");
+//   const op = await contract.methods.mint(metadatamap,address).send();
+
+//   console.log(`Waiting for ${op.opHash} to be confirmed...`);
+//   const hash = await op.confirmation(3).then(() => op.opHash);
+//   console.log(`Operation injected: https://ghost.tzstats.com/${hash}`);
+// } catch (error) {
+//   console.error("Error minting NFT:", error);
+// } finally {
+//   statusMessage = "Mint another NFT";
+//   buttonActive = true;
+// }
+
+let bankBalance;
+const getBankBalance = async (walletAddress) => {
+  const contract = await Tezos.wallet.at(contractAddress);
+  const storage = await contract.storage();
+  const balanceMutez = await storage.get(walletAddress);
+  bankBalance = isNaN(balanceMutez) ? 0 : balanceMutez / 1000000;
+}
+</script>
+
+<main>
+  <h1>Tez Santa dApp</h1>
+
+  <div class="card">
+    {#if wallet}
+      <p>Your wallet address: {address}.</p>
+      <p>Currently you have {balance} tez in your wallet.</p>
+      <button on:click={disconnectWallet}> Disconnect wallet </button>
+      <button on:click={requestNFT}>{statusMessage}</button>
+    {:else}
+      <button on:click={connectWallet}> Connect wallet </button>
+    {/if}
+    <p>
+      Deposit tez:
+      <input type="number" bind:value={depositAmount} min="1" max="100" />
+      <!-- <input type="range" bind:value={depositAmount} min="1" max="100" /> -->
+      <button on:click={deposit} disabled={!depositButtonActive}> {depositButtonLabel} </button>
+    </p>
+  </div>
+
+</main>
+
+<style lang="scss">
+</style>
